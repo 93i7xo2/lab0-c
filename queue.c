@@ -1,9 +1,10 @@
+#include "queue.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "harness.h"
-#include "queue.h"
 
 /*
  * Create empty queue.
@@ -12,16 +13,28 @@
 queue_t *q_new()
 {
     queue_t *q = malloc(sizeof(queue_t));
-    /* TODO: What if malloc returned NULL? */
-    q->head = NULL;
+    if (q) {
+        q->head = NULL;
+        q->count = 0;
+        q->last_element = q->head;
+    }
     return q;
 }
 
 /* Free all storage used by queue */
 void q_free(queue_t *q)
 {
-    /* TODO: How about freeing the list elements and the strings? */
     /* Free queue structure */
+    if (!q)
+        return;
+
+    list_ele_t *head = q->head;
+    while (head != NULL) {
+        list_ele_t *tmp = head;
+        head = head->next;
+        free(tmp->value);
+        free(tmp);
+    }
     free(q);
 }
 
@@ -34,13 +47,31 @@ void q_free(queue_t *q)
  */
 bool q_insert_head(queue_t *q, char *s)
 {
-    list_ele_t *newh;
-    /* TODO: What should you do if the q is NULL? */
-    newh = malloc(sizeof(list_ele_t));
-    /* Don't forget to allocate space for the string and copy it */
-    /* What if either call to malloc returns NULL? */
+    if (!q)
+        return false;
+
+    /* Create a new element. */
+    list_ele_t *newh = malloc(sizeof(list_ele_t));
+    int len = strlen(s);
+    if (!newh)
+        return false;
+    newh->value = (char *) malloc(len + 1);
+    if (!newh->value) {
+        free(newh);
+        return false;
+    }
+    strncpy(newh->value, (const char *) s, len);
+    newh->value[len] = '\0';
+
+    /* Attach new element at the head of linked list. */
     newh->next = q->head;
     q->head = newh;
+    q->count++;
+
+    /* Mark it as last element if it's a first element. */
+    if (!newh->next)
+        q->last_element = newh;
+
     return true;
 }
 
@@ -53,10 +84,33 @@ bool q_insert_head(queue_t *q, char *s)
  */
 bool q_insert_tail(queue_t *q, char *s)
 {
-    /* TODO: You need to write the complete code for this function */
-    /* Remember: It should operate in O(1) time */
-    /* TODO: Remove the above comment when you are about to implement. */
-    return false;
+    if (!q)
+        return false;
+
+    /* Create a new element. */
+    list_ele_t *newh = malloc(sizeof(list_ele_t));
+    int len = strlen(s);
+    if (!newh)
+        return false;
+    newh->value = (char *) malloc(len + 1);
+    if (!newh->value) {
+        free(newh);
+        return false;
+    }
+    strncpy(newh->value, (const char *) s, len);
+    newh->value[len] = '\0';
+    newh->next = NULL;
+
+    /* Insert element at tail of queue, with time complexity of O(1) */
+    if (!q->last_element) {
+        q->head = q->last_element = newh;
+    } else {
+        q->last_element->next = newh;
+        q->last_element = newh;
+    }
+    q->count++;
+
+    return true;
 }
 
 /*
@@ -69,9 +123,26 @@ bool q_insert_tail(queue_t *q, char *s)
  */
 bool q_remove_head(queue_t *q, char *sp, size_t bufsize)
 {
-    /* TODO: You need to fix up this code. */
-    /* TODO: Remove the above comment when you are about to implement. */
+    if (q == NULL || q->head == NULL)
+        return false;
+    if (sp) {
+        int realBufsize = strlen(q->head->value) < bufsize - 1
+                              ? strlen(q->head->value)
+                              : bufsize - 1;
+        memcpy((void *) sp, (const void *) q->head->value, realBufsize);
+        *(sp + realBufsize) = '\0';
+    }
+    list_ele_t *target = q->head;
+    /* May be bufsize is greater than actual size of value */
     q->head = q->head->next;
+    q->count--;
+    free(target->value);
+    free(target);
+
+    /* Mark last element as NULL if queue is empty */
+    if (!q->head)
+        q->last_element = NULL;
+
     return true;
 }
 
@@ -81,10 +152,11 @@ bool q_remove_head(queue_t *q, char *sp, size_t bufsize)
  */
 int q_size(queue_t *q)
 {
-    /* TODO: You need to write the code for this function */
-    /* Remember: It should operate in O(1) time */
-    /* TODO: Remove the above comment when you are about to implement. */
-    return 0;
+    if (q == NULL)
+        return 0;
+
+    /* With time complexity of O(1) */
+    return q->count;
 }
 
 /*
@@ -96,8 +168,19 @@ int q_size(queue_t *q)
  */
 void q_reverse(queue_t *q)
 {
-    /* TODO: You need to write the code for this function */
-    /* TODO: Remove the above comment when you are about to implement. */
+    if (q == NULL)
+        return;
+
+    list_ele_t *prev = NULL;
+    list_ele_t *temp;
+    list_ele_t *current = q->last_element = q->head;
+    while (current != NULL) {
+        temp = current->next;
+        current->next = prev;
+        prev = current;
+        current = temp;
+    }
+    q->head = prev;
 }
 
 /*
@@ -107,6 +190,66 @@ void q_reverse(queue_t *q)
  */
 void q_sort(queue_t *q)
 {
-    /* TODO: You need to write the code for this function */
-    /* TODO: Remove the above comment when you are about to implement. */
+    if (q == NULL || q->head == NULL || q->count == 1)
+        return;
+    q->head = mergesort(q->head, comparator);
+
+    list_ele_t *end = q->head;
+    while (end->next) {
+        end = end->next;
+    }
+    q->last_element = end;
+}
+
+/*
+ * Sort elements in linked list
+ * This function is called by `q_sort`
+ */
+list_ele_t *mergesort(list_ele_t *start,
+                      int (*compar)(const void *, const void *))
+{
+    if (!start || !start->next) {
+        return start;
+    }
+
+    // Split the list into two lists
+    list_ele_t *slow = start, *fast = start;
+    while (fast->next && fast->next->next) {
+        slow = slow->next;
+        fast = fast->next->next;
+    }
+    list_ele_t *left = start, *right = slow->next;
+    slow->next = NULL;
+
+    left = mergesort(left, compar);
+    right = mergesort(right, compar);
+
+    for (list_ele_t *merge = NULL; left || right;) {
+        if (!right || (left && (*compar)(left, right) < 0)) {
+            list_ele_t *next = left->next;
+            if (!merge) {
+                start = merge = left;
+            } else {
+                merge->next = left;
+                merge = left;
+            }
+            left = next;
+        } else {
+            list_ele_t *next = right->next;
+            if (!merge) {
+                start = merge = right;
+            } else {
+                merge->next = right;
+                merge = right;
+            }
+            right = next;
+        }
+        merge->next = NULL;
+    }
+    return start;
+}
+
+int comparator(const void *a, const void *b)
+{
+    return strcmp(((list_ele_t *) a)->value, ((list_ele_t *) b)->value);
 }
