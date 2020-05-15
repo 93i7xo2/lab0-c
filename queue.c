@@ -28,10 +28,9 @@ void q_free(queue_t *q)
     if (!q)
         return;
 
-    list_ele_t *head = q->head;
-    while (head != NULL) {
-        list_ele_t *tmp = head;
-        head = head->next;
+    while (q->head) {
+        list_ele_t *tmp = q->head;
+        q->head = q->head->next;
         free(tmp->value);
         free(tmp);
     }
@@ -123,7 +122,7 @@ bool q_insert_tail(queue_t *q, char *s)
  */
 bool q_remove_head(queue_t *q, char *sp, size_t bufsize)
 {
-    if (q == NULL || q->head == NULL)
+    if (!q || !q->head)
         return false;
     if (sp) {
         int realBufsize = strlen(q->head->value) < bufsize - 1
@@ -152,11 +151,8 @@ bool q_remove_head(queue_t *q, char *sp, size_t bufsize)
  */
 int q_size(queue_t *q)
 {
-    if (q == NULL)
-        return 0;
-
     /* With time complexity of O(1) */
-    return q->count;
+    return q ? q->count : 0;
 }
 
 /*
