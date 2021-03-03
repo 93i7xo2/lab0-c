@@ -10,6 +10,9 @@
 /* Simulation flag of console option */
 extern bool simulation;
 
+/* Natsort flag of console option */
+extern bool natsort;
+
 /* Each command defined in terms of a function */
 typedef bool (*cmd_function)(int argc, char *argv[]);
 

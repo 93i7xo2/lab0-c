@@ -31,6 +31,7 @@
  * solution code
  */
 #include "queue.h"
+#include "strnatcmp.h"
 
 #include "console.h"
 #include "report.h"
@@ -558,10 +559,13 @@ bool do_sort(int argc, char *argv[])
 
     bool ok = true;
     if (q) {
+        int (*sort_alg)(const char *, const char *) = strcasecmp;
+        if (natsort)
+            sort_alg = strnatcasecmp;
         for (list_ele_t *e = q->head; e && --cnt; e = e->next) {
             /* Ensure each element in ascending order */
             /* FIXME: add an option to specify sorting order */
-            if (strcasecmp(e->value, e->next->value) > 0) {
+            if (sort_alg(e->value, e->next->value) > 0) {
                 report(1, "ERROR: Not sorted in ascending order");
                 ok = false;
                 break;

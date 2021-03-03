@@ -4,7 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "console.h"
 #include "harness.h"
+#include "strnatcmp.h"
 
 /*
  * Create empty queue.
@@ -247,5 +249,8 @@ list_ele_t *mergesort(list_ele_t *start,
 
 int comparator(const void *a, const void *b)
 {
-    return strcmp(((list_ele_t *) a)->value, ((list_ele_t *) b)->value);
+    int (*sort_alg)() = strcmp;
+    if (natsort)
+        sort_alg = strnatcasecmp;
+    return sort_alg(((list_ele_t *) a)->value, ((list_ele_t *) b)->value);
 }
