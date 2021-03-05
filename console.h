@@ -4,6 +4,7 @@
 #include <sys/select.h>
 #include "linenoise.h"
 #define HISTORY_FILE ".cmd_history"
+#define HISTORY_LEN 20
 
 /* Implementation of simple command-line interface */
 

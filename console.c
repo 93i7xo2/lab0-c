@@ -659,6 +659,12 @@ bool run_console(char *infile_name)
 
     if (!has_infile) {
         char *cmdline;
+
+        /* Trigger call back function(auto completion) */
+        linenoiseSetCompletionCallback(completion);
+
+        linenoiseHistorySetMaxLen(HISTORY_LEN);
+        linenoiseHistoryLoad(HISTORY_FILE); /* Load the history at startup */
         while ((cmdline = linenoise(prompt)) != NULL) {
             interpret_cmd(cmdline);
             linenoiseHistoryAdd(cmdline);       /* Add to the history. */
